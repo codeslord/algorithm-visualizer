@@ -61,14 +61,14 @@ export default function VisualizerPage() {
       setFiles(data.files);
       setDescription(data.description);
       setAlgorithm({ categoryKey, algorithmKey });
-      setTitles([categoryKey, algorithmKey]);
+      setTitles([data.categoryName, data.algorithmName]);
 
       // Set default editing file
       const defaultFile =
         data.files.find((f) => f.name.endsWith('.js')) || data.files[0];
       setEditingFile(defaultFile);
 
-      toast.success('Algorithm loaded successfully');
+      toast.success(`${data.algorithmName} loaded successfully`);
     } catch (error) {
       console.error('Failed to load algorithm:', error);
       toast.error('Failed to load algorithm');

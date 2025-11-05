@@ -54,10 +54,33 @@ const DELETE = <T = any>(url: string) => {
 
 // Algorithm API
 export const AlgorithmApi = {
-  getCategories: GET<Category[]>('/algorithms'),
-  getAlgorithm: GET<{ files: FileContent[]; description: string }>(
-    '/algorithms/:categoryKey/:algorithmKey'
-  ),
+  getCategories: async (): Promise<Category[]> => {
+    const response = await GET<{ categories: Category[] }>('/algorithms')();
+    return response.categories;
+  },
+  getAlgorithm: async (
+    categoryKey: string,
+    algorithmKey: string
+  ): Promise<{
+    categoryKey: string;
+    categoryName: string;
+    algorithmKey: string;
+    algorithmName: string;
+    files: FileContent[];
+    description: string;
+  }> => {
+    const response = await GET<{
+      algorithm: {
+        categoryKey: string;
+        categoryName: string;
+        algorithmKey: string;
+        algorithmName: string;
+        files: FileContent[];
+        description: string;
+      };
+    }>('/algorithms/:categoryKey/:algorithmKey')(categoryKey, algorithmKey);
+    return response.algorithm;
+  },
 };
 
 // Visualization API

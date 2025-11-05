@@ -106,33 +106,53 @@ export async function GET(
       }
     }
 
-    const data = {
-      description,
-      files: validFiles,
+    // Format response to match expected structure
+    const responseData = {
+      algorithm: {
+        categoryKey,
+        categoryName: categoryFolder,
+        algorithmKey,
+        algorithmName: algorithmFolder,
+        files: validFiles,
+        description,
+      },
     };
 
     // Cache the result
-    fileCache.set(cacheKey, { data, timestamp: Date.now() });
+    fileCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
 
-    return NextResponse.json(data);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error(`Error fetching algorithm ${categoryKey}/${algorithmKey}:`, error);
 
-    // Return fallback data
+    // Get category name for fallback
+    const categoryFolder = categoryMapping[categoryKey] || categoryKey;
+    const algorithmFolder = algorithmKey
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+    // Return fallback data in expected format
     const fallbackData = {
-      description: `${algorithmKey} algorithm demonstration`,
-      files: [
-        {
-          name: 'code.js',
-          content: `// ${algorithmKey} implementation\n// Algorithm from ${categoryKey} category\n\nconsole.log('Algorithm: ${algorithmKey}');\nconsole.log('Category: ${categoryKey}');\n\n// Implementation coming soon...`,
-          contributors: ['Algorithm Visualizer Team'],
-        },
-        {
-          name: 'README.md',
-          content: `# ${algorithmKey}\n\nThis is a ${categoryKey} algorithm.\n\n## Coming Soon\nFull implementation and visualization coming soon!`,
-          contributors: ['Algorithm Visualizer Team'],
-        },
-      ],
+      algorithm: {
+        categoryKey,
+        categoryName: categoryFolder,
+        algorithmKey,
+        algorithmName: algorithmFolder,
+        description: `${algorithmFolder} algorithm demonstration`,
+        files: [
+          {
+            name: 'code.js',
+            content: `// ${algorithmFolder} implementation\n// Algorithm from ${categoryFolder} category\n\nconsole.log('Algorithm: ${algorithmFolder}');\nconsole.log('Category: ${categoryFolder}');\n\n// Implementation coming soon...`,
+            contributors: ['Algorithm Visualizer Team'],
+          },
+          {
+            name: 'README.md',
+            content: `# ${algorithmFolder}\n\nThis is a ${categoryFolder} algorithm.\n\n## Coming Soon\nFull implementation and visualization coming soon!`,
+            contributors: ['Algorithm Visualizer Team'],
+          },
+        ],
+      },
     };
 
     return NextResponse.json(fallbackData);

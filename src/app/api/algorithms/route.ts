@@ -91,30 +91,33 @@ export async function GET() {
 
     // Filter out null results and cache
     const validCategories = categories.filter(Boolean);
-    categoriesCache = validCategories;
+    const responseData = { categories: validCategories };
+    categoriesCache = responseData;
     cacheTimestamp = now;
 
-    return NextResponse.json(validCategories);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error fetching algorithm categories:', error);
 
-    // Return fallback data
-    return NextResponse.json([
-      {
-        key: 'divide-conquer',
-        name: 'Divide and Conquer',
-        algorithms: [
-          { key: 'merge-sort', name: 'Merge Sort', description: 'Merge Sort algorithm' },
-          { key: 'quicksort', name: 'Quicksort', description: 'Quicksort algorithm' },
-        ],
-      },
-      {
-        key: 'backtracking',
-        name: 'Backtracking',
-        algorithms: [
-          { key: 'n-queens-problem', name: 'N-Queens Problem', description: 'N-Queens Problem' },
-        ],
-      },
-    ]);
+    // Return fallback data in expected format
+    return NextResponse.json({
+      categories: [
+        {
+          key: 'divide-conquer',
+          name: 'Divide and Conquer',
+          algorithms: [
+            { key: 'merge-sort', name: 'Merge Sort', description: 'Merge Sort algorithm' },
+            { key: 'quicksort', name: 'Quicksort', description: 'Quicksort algorithm' },
+          ],
+        },
+        {
+          key: 'backtracking',
+          name: 'Backtracking',
+          algorithms: [
+            { key: 'n-queens-problem', name: 'N-Queens Problem', description: 'N-Queens Problem' },
+          ],
+        },
+      ],
+    });
   }
 }
