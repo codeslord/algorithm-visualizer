@@ -4,8 +4,7 @@ import React from 'react';
 import { Panel, Badge } from './ui';
 import { usePlayerStore, useCurrentStore } from '@/store';
 import { motion } from 'framer-motion';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartBar, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { BarChart3, Play } from 'lucide-react';
 
 export const VisualizationViewer: React.FC = () => {
   const { chunks, cursor, lineIndicator } = usePlayerStore();
@@ -23,7 +22,7 @@ export const VisualizationViewer: React.FC = () => {
           className="glass-panel p-4"
         >
           <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-            <FontAwesomeIcon icon={faChartBar} className="text-primary" />
+            <BarChart3 className="w-5 h-5 text-primary" />
             Algorithm Description
           </h3>
           <p className="text-gray-300 text-sm">{description}</p>
@@ -40,7 +39,7 @@ export const VisualizationViewer: React.FC = () => {
         >
           <div className="text-center space-y-4">
             <div className="text-6xl mb-4">
-              <FontAwesomeIcon icon={faChartBar} className="text-primary animate-pulse" />
+              <BarChart3 className="w-24 h-24 mx-auto text-primary animate-pulse" />
             </div>
             <h3 className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-400 to-secondary bg-clip-text text-transparent">
               Visualization Running
@@ -67,7 +66,7 @@ export const VisualizationViewer: React.FC = () => {
         >
           <div className="text-center space-y-4 max-w-md">
             <div className="text-6xl mb-4">
-              <FontAwesomeIcon icon={faPlay} className="text-gray-600" />
+              <Play className="w-24 h-24 mx-auto text-gray-600" />
             </div>
             <h3 className="text-xl font-semibold text-gray-300">
               No Visualization Yet

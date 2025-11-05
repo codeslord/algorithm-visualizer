@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faPlay,
-  faPause,
-  faStepForward,
-  faStepBackward,
-  faFastBackward,
-  faFastForward,
-  faTachometerAlt,
-} from '@fortawesome/free-solid-svg-icons';
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  FastForward,
+  Rewind,
+  Gauge,
+} from 'lucide-react';
 import { Button, Badge, Panel } from './ui';
 import { usePlayerStore } from '@/store';
 import { motion } from 'framer-motion';
@@ -123,7 +122,7 @@ export const Player: React.FC<PlayerProps> = ({ className }) => {
             disabled={cursor === 0}
             title="First"
           >
-            <FontAwesomeIcon icon={faFastBackward} />
+            <Rewind className="w-4 h-4" />
           </Button>
 
           <Button
@@ -133,7 +132,7 @@ export const Player: React.FC<PlayerProps> = ({ className }) => {
             disabled={cursor === 0}
             title="Previous"
           >
-            <FontAwesomeIcon icon={faStepBackward} />
+            <SkipBack className="w-4 h-4" />
           </Button>
 
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -144,7 +143,7 @@ export const Player: React.FC<PlayerProps> = ({ className }) => {
               disabled={chunks.length === 0}
               title={isPlaying ? 'Pause' : 'Play'}
             >
-              <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} size="lg" />
+              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             </Button>
           </motion.div>
 
@@ -155,7 +154,7 @@ export const Player: React.FC<PlayerProps> = ({ className }) => {
             disabled={cursor >= chunks.length}
             title="Next"
           >
-            <FontAwesomeIcon icon={faStepForward} />
+            <SkipForward className="w-4 h-4" />
           </Button>
 
           <Button
@@ -165,7 +164,7 @@ export const Player: React.FC<PlayerProps> = ({ className }) => {
             disabled={cursor >= chunks.length}
             title="Last"
           >
-            <FontAwesomeIcon icon={faFastForward} />
+            <FastForward className="w-4 h-4" />
           </Button>
         </div>
 
@@ -173,7 +172,7 @@ export const Player: React.FC<PlayerProps> = ({ className }) => {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faTachometerAlt} className="text-gray-400" />
+              <Gauge className="w-4 h-4 text-gray-400" />
               <span className="text-gray-400">Speed</span>
             </div>
             <Badge variant="accent">{speed.toFixed(1)}x</Badge>

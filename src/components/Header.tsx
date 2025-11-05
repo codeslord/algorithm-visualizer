@@ -2,9 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGithub } from '@fortawesome/free-brands-svg-icons';
-import { faUser, faSignOutAlt, faCode } from '@fortawesome/free-solid-svg-icons';
+import { Github, LogOut, Code2 } from 'lucide-react';
 import { Button } from './ui';
 import { useEnvStore } from '@/store';
 import { motion } from 'framer-motion';
@@ -32,7 +30,7 @@ export const Header: React.FC = () => {
               transition={{ duration: 0.6 }}
               className="flex items-center justify-center w-10 h-10 glass-button-primary rounded-xl"
             >
-              <FontAwesomeIcon icon={faCode} className="text-xl" />
+              <Code2 className="w-5 h-5" />
             </motion.div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-light via-purple-400 to-secondary-light bg-clip-text text-transparent">
@@ -62,7 +60,7 @@ export const Header: React.FC = () => {
                   onClick={handleSignOut}
                   title="Sign Out"
                 >
-                  <FontAwesomeIcon icon={faSignOutAlt} />
+                  <LogOut className="w-4 h-4" />
                 </Button>
               </div>
             ) : (
@@ -73,7 +71,7 @@ export const Header: React.FC = () => {
                   alert('GitHub OAuth integration would be implemented here');
                 }}
               >
-                <FontAwesomeIcon icon={faGithub} className="mr-2" />
+                <Github className="w-4 h-4 mr-2" />
                 Sign In with GitHub
               </Button>
             )}

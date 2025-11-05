@@ -2,8 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSave, faPlay, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { Save, Play, X } from 'lucide-react';
 import { Button, Badge, Divider } from './ui';
 import { useCurrentStore } from '@/store';
 import { motion } from 'framer-motion';
@@ -136,12 +135,12 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ onBuild }) => {
         <div className="flex items-center gap-2">
           {!saved && (
             <Button variant="accent" size="sm" onClick={handleSave}>
-              <FontAwesomeIcon icon={faSave} className="mr-2" />
+              <Save className="w-4 h-4 mr-2" />
               Save
             </Button>
           )}
           <Button variant="primary" size="sm" onClick={onBuild}>
-            <FontAwesomeIcon icon={faPlay} className="mr-2" />
+            <Play className="w-4 h-4 mr-2" />
             Build & Run
           </Button>
         </div>

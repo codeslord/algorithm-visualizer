@@ -1,14 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faChevronDown,
-  faChevronRight,
-  faFolder,
-  faFile,
-  faSearch,
-} from '@fortawesome/free-solid-svg-icons';
+import { ChevronDown, ChevronRight, Folder, File, Search } from 'lucide-react';
 import { Input, Button, Badge } from './ui';
 import { useDirectoryStore } from '@/store';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,10 +42,7 @@ export const Navigator: React.FC<NavigatorProps> = ({ onSelectAlgorithm }) => {
       {/* Search */}
       <div className="p-4 border-b border-white/10">
         <div className="relative">
-          <FontAwesomeIcon
-            icon={faSearch}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Search algorithms..."
             value={searchQuery}
@@ -77,15 +67,12 @@ export const Navigator: React.FC<NavigatorProps> = ({ onSelectAlgorithm }) => {
                 className="w-full flex items-center justify-between p-3 rounded-lg glass-button hover:bg-white/15 transition-all duration-300"
               >
                 <div className="flex items-center gap-2">
-                  <FontAwesomeIcon
-                    icon={
-                      expandedCategories.has(category.key)
-                        ? faChevronDown
-                        : faChevronRight
-                    }
-                    className="text-sm text-gray-400"
-                  />
-                  <FontAwesomeIcon icon={faFolder} className="text-primary" />
+                  {expandedCategories.has(category.key) ? (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  )}
+                  <Folder className="w-4 h-4 text-primary" />
                   <span className="font-medium">{category.name}</span>
                 </div>
                 <Badge variant="default">{category.algorithms.length}</Badge>
@@ -112,10 +99,7 @@ export const Navigator: React.FC<NavigatorProps> = ({ onSelectAlgorithm }) => {
                         }
                         className="w-full flex items-center gap-2 p-2 pl-8 rounded-lg text-left hover:bg-white/10 transition-all duration-300 group"
                       >
-                        <FontAwesomeIcon
-                          icon={faFile}
-                          className="text-sm text-gray-400 group-hover:text-accent transition-colors"
-                        />
+                        <File className="w-4 h-4 text-gray-400 group-hover:text-accent transition-colors" />
                         <span className="text-sm">{algorithm.name}</span>
                       </motion.button>
                     ))}
