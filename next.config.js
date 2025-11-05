@@ -8,14 +8,7 @@ const nextConfig = {
     });
     return config;
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:8080/:path*',
-      },
-    ];
-  },
+  // Removed proxy to localhost:8080 - using Next.js API routes instead
 };
 
 module.exports = nextConfig;
