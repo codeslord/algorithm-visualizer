@@ -24,35 +24,60 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Admin credentials (bypass Supabase)
+const ADMIN_EMAIL = 'codeslord@gmail.com';
+const ADMIN_PASSWORD = 'Admin@123456';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      setProfile(data as Profile);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      setProfile(null);
-    }
-  };
-
+  // Check for admin session in localStorage
   useEffect(() => {
-    // Get initial session
+    const checkAdminSession = () => {
+      if (typeof window === 'undefined') return null;
+
+      const adminSession = localStorage.getItem('admin_session');
+      if (adminSession) {
+        try {
+          return JSON.parse(adminSession);
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    };
+
+    const adminSession = checkAdminSession();
+    if (adminSession) {
+      // Restore admin session
+      setUser({
+        id: 'admin-user',
+        email: ADMIN_EMAIL,
+        role: 'authenticated',
+      } as User);
+      setProfile({
+        id: 'admin-user',
+        email: ADMIN_EMAIL,
+        full_name: 'Admin User',
+        has_paid: true,
+        is_admin: true,
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise check Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
       }
+    }).catch(() => {
       setLoading(false);
     });
 
@@ -72,7 +97,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      setProfile(data as Profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
+    // Check for admin credentials first (bypass Supabase)
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      // Create admin session
+      const adminUser = {
+        id: 'admin-user',
+        email: ADMIN_EMAIL,
+        role: 'authenticated',
+      } as User;
+
+      const adminProfile: Profile = {
+        id: 'admin-user',
+        email: ADMIN_EMAIL,
+        full_name: 'Admin User',
+        has_paid: true,
+        is_admin: true,
+      };
+
+      // Store in localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('admin_session', JSON.stringify({ email, timestamp: Date.now() }));
+      }
+
+      setUser(adminUser);
+      setProfile(adminProfile);
+      return;
+    }
+
+    // Otherwise use Supabase authentication
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -94,8 +163,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    // Clear admin session
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_session');
+    }
+
+    // Sign out from Supabase
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+
     setUser(null);
     setProfile(null);
   };

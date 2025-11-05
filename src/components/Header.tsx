@@ -2,16 +2,19 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Github, LogOut, Code2 } from 'lucide-react';
+import { Github, LogOut, Code2, User as UserIcon } from 'lucide-react';
 import { Button } from './ui';
-import { useEnvStore } from '@/store';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export const Header: React.FC = () => {
-  const { user, setUser } = useEnvStore();
+  const { user, profile, signOut } = useAuth();
+  const router = useRouter();
 
-  const handleSignOut = () => {
-    setUser(undefined);
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/landing');
   };
 
   return (
@@ -47,12 +50,15 @@ export const Header: React.FC = () => {
             {user ? (
               <div className="flex items-center gap-3">
                 <div className="glass-panel px-4 py-2 flex items-center gap-2">
-                  <img
-                    src={user.avatar_url}
-                    alt={user.login}
-                    className="w-8 h-8 rounded-full border-2 border-primary/50"
-                  />
-                  <span className="text-sm font-medium">{user.login}</span>
+                  <div className="w-8 h-8 rounded-full border-2 border-primary/50 flex items-center justify-center bg-primary/20">
+                    <UserIcon className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{profile?.email || user.email}</span>
+                    {profile?.is_admin && (
+                      <span className="text-xs text-accent">Admin</span>
+                    )}
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
@@ -66,13 +72,10 @@ export const Header: React.FC = () => {
             ) : (
               <Button
                 variant="primary"
-                onClick={() => {
-                  // Sign in logic would go here
-                  alert('GitHub OAuth integration would be implemented here');
-                }}
+                onClick={() => router.push('/auth/login')}
               >
-                <Github className="w-4 h-4 mr-2" />
-                Sign In with GitHub
+                <UserIcon className="w-4 h-4 mr-2" />
+                Sign In
               </Button>
             )}
           </div>
