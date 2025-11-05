@@ -63,12 +63,22 @@ export default function VisualizerPage() {
       setAlgorithm({ categoryKey, algorithmKey });
       setTitles([data.categoryName, data.algorithmName]);
 
-      // Set default editing file
-      const defaultFile =
-        data.files.find((f) => f.name.endsWith('.js')) || data.files[0];
+      // Find JavaScript file (prefer .js files)
+      const jsFiles = data.files.filter((f) => f.name.endsWith('.js'));
+      const defaultFile = jsFiles[0] || data.files[0];
+
       setEditingFile(defaultFile);
 
-      toast.success(`${data.algorithmName} loaded successfully`);
+      // Warn if no JS files available
+      if (jsFiles.length === 0) {
+        const availableExts = data.files.map(f => f.name.split('.').pop()).join(', ');
+        toast(
+          `⚠️ No JavaScript implementation available. Available: ${availableExts}`,
+          { duration: 4000 }
+        );
+      } else {
+        toast.success(`${data.algorithmName} loaded successfully`);
+      }
     } catch (error) {
       console.error('Failed to load algorithm:', error);
       toast.error('Failed to load algorithm');
@@ -76,6 +86,8 @@ export default function VisualizerPage() {
   };
 
   const handleBuild = async () => {
+    console.log('Build button clicked');
+
     if (!editingFile) {
       toast.error('No file selected');
       return;
@@ -86,36 +98,61 @@ export default function VisualizerPage() {
       setIsPlaying(false);
       first();
 
-      toast.loading('Building and executing...', { id: 'build' });
-
-      // Determine file extension
       const ext = editingFile.name.split('.').pop()?.toLowerCase();
       const code = editingFile.content;
+
+      console.log('Building file:', editingFile.name, 'Type:', ext);
+      console.log('Code length:', code.length);
+
+      // Check if file type is supported
+      if (ext !== 'js' && ext !== 'json' && ext !== 'md') {
+        toast.error(
+          `Cannot execute .${ext} files. Only JavaScript (.js) files can be visualized.`,
+          { duration: 5000 }
+        );
+        return;
+      }
+
+      toast.loading('Executing algorithm...', { id: 'build' });
 
       let chunks: any[] = [];
 
       // Execute code based on file type
       if (ext === 'js') {
+        console.log('Executing JavaScript code...');
         chunks = await TracerApi.js({ code });
+        console.log('Execution completed, chunks:', chunks.length);
       } else if (ext === 'json') {
         chunks = await TracerApi.json({ code });
       } else if (ext === 'md') {
         chunks = await TracerApi.md({ code });
-      } else {
-        toast.error(`File type .${ext} not supported yet`, { id: 'build' });
+      }
+
+      if (!chunks || chunks.length === 0) {
+        toast(
+          '⚠️ Code executed but no visualization steps were recorded. Make sure your code uses tracer methods.',
+          { id: 'build', duration: 5000 }
+        );
         return;
       }
 
       // Set chunks in player store
       setChunks(chunks);
 
+      console.log('Chunks set in store:', chunks.length);
+
       toast.success(
-        `Built successfully! ${chunks.length} step${chunks.length !== 1 ? 's' : ''} recorded`,
-        { id: 'build' }
+        `Built successfully! ${chunks.length} visualization step${
+          chunks.length !== 1 ? 's' : ''
+        } recorded`,
+        { id: 'build', duration: 3000 }
       );
     } catch (error: any) {
       console.error('Build error:', error);
-      toast.error(`Build failed: ${error.message}`, { id: 'build' });
+      toast.error(`Build failed: ${error.message || 'Unknown error'}`, {
+        id: 'build',
+        duration: 5000,
+      });
     }
   };
 

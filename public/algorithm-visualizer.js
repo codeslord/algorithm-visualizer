@@ -383,3 +383,25 @@ if (typeof module !== 'undefined' && module.exports) {
     },
   };
 }
+
+// Also expose in global scope for Web Worker usage
+if (typeof self !== 'undefined') {
+  self.Tracer = Tracer;
+  self.Array1DTracer = Array1DTracer;
+  self.Array2DTracer = Array2DTracer;
+  self.LogTracer = LogTracer;
+  self.ChartTracer = ChartTracer;
+  self.GraphTracer = GraphTracer;
+  self.MarkdownTracer = MarkdownTracer;
+  self.ScatterTracer = ScatterTracer;
+  self.Layout = Layout;
+  self.VerticalLayout = VerticalLayout;
+  self.HorizontalLayout = HorizontalLayout;
+  self.Randomize = Randomize;
+  self.__getCommands = () => commands;
+  self.__reset = () => {
+    commands.length = 0;
+    chunkIndex = 0;
+    lineNumber = null;
+  };
+}
