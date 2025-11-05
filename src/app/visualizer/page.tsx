@@ -7,7 +7,7 @@ import { Navigator } from '@/components/Navigator';
 import { CodeEditor } from '@/components/CodeEditor';
 import { Player } from '@/components/Player';
 import { VisualizationViewer } from '@/components/VisualizationViewer';
-import { AlgorithmApi } from '@/lib/api';
+import { AlgorithmApi, TracerApi } from '@/lib/api';
 import { useCurrentStore, useDirectoryStore, usePlayerStore } from '@/store';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { motion } from 'framer-motion';
@@ -20,9 +20,9 @@ export default function VisualizerPage() {
   const { user, hasAccess, loading: authLoading } = useAuth();
   const router = useRouter();
   const { setCategories } = useDirectoryStore();
-  const { setFiles, setEditingFile, setDescription, setAlgorithm, setTitles } =
+  const { files, editingFile, setFiles, setEditingFile, setDescription, setAlgorithm, setTitles } =
     useCurrentStore();
-  const { setChunks } = usePlayerStore();
+  const { setChunks, setIsPlaying, first } = usePlayerStore();
 
   // Check access
   useEffect(() => {
@@ -76,12 +76,47 @@ export default function VisualizerPage() {
   };
 
   const handleBuild = async () => {
-    toast.success('Build started!');
-    setChunks([
-      { commands: [], lineNumber: 1 },
-      { commands: [], lineNumber: 2 },
-      { commands: [], lineNumber: 3 },
-    ]);
+    if (!editingFile) {
+      toast.error('No file selected');
+      return;
+    }
+
+    try {
+      // Stop any current playback
+      setIsPlaying(false);
+      first();
+
+      toast.loading('Building and executing...', { id: 'build' });
+
+      // Determine file extension
+      const ext = editingFile.name.split('.').pop()?.toLowerCase();
+      const code = editingFile.content;
+
+      let chunks: any[] = [];
+
+      // Execute code based on file type
+      if (ext === 'js') {
+        chunks = await TracerApi.js({ code });
+      } else if (ext === 'json') {
+        chunks = await TracerApi.json({ code });
+      } else if (ext === 'md') {
+        chunks = await TracerApi.md({ code });
+      } else {
+        toast.error(`File type .${ext} not supported yet`, { id: 'build' });
+        return;
+      }
+
+      // Set chunks in player store
+      setChunks(chunks);
+
+      toast.success(
+        `Built successfully! ${chunks.length} step${chunks.length !== 1 ? 's' : ''} recorded`,
+        { id: 'build' }
+      );
+    } catch (error: any) {
+      console.error('Build error:', error);
+      toast.error(`Build failed: ${error.message}`, { id: 'build' });
+    }
   };
 
   if (authLoading || (!hasAccess && user)) {

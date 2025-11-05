@@ -128,9 +128,26 @@ export const TracerApi = {
       },
     ]),
   json: ({ code }: { code: string }) => Promise.resolve(JSON.parse(code)),
-  js: ({ code }: { code: string }) =>
-    // For now, return empty array. This would need a Web Worker implementation
-    Promise.resolve([]),
+  js: ({ code }: { code: string }): Promise<any[]> =>
+    new Promise((resolve, reject) => {
+      const worker = new Worker('/tracer-worker.js');
+
+      worker.onmessage = (e) => {
+        worker.terminate();
+        if (e.data.success) {
+          resolve(e.data.chunks);
+        } else {
+          reject(new Error(e.data.error.message));
+        }
+      };
+
+      worker.onerror = (error) => {
+        worker.terminate();
+        reject(error);
+      };
+
+      worker.postMessage({ code });
+    }),
   cpp: POST('/tracers/cpp'),
   java: POST('/tracers/java'),
 };
