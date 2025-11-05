@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
-// GitHub repo details
-const GITHUB_REPO = 'algorithm-visualizer/algorithms';
-const GITHUB_RAW = 'https://raw.githubusercontent.com';
+// Path to local algorithms directory
+const ALGORITHMS_PATH = path.join(process.cwd(), 'algorithms');
 
-// Reverse category mapping (key to GitHub folder name)
+// Reverse category mapping (key to folder name)
 const categoryMapping: Record<string, string> = {
   'backtracking': 'Backtracking',
   'branch-bound': 'Branch and Bound',
@@ -34,7 +35,7 @@ export async function GET(
       return NextResponse.json(cached.data);
     }
 
-    // Get GitHub category folder name
+    // Get category folder name
     const categoryFolder = categoryMapping[categoryKey];
     if (!categoryFolder) {
       throw new Error(`Unknown category: ${categoryKey}`);
@@ -46,55 +47,33 @@ export async function GET(
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
 
-    // Fetch directory contents from GitHub API
-    const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURIComponent(categoryFolder)}/${encodeURIComponent(algorithmFolder)}`;
+    // Build path to algorithm directory
+    const algorithmPath = path.join(ALGORITHMS_PATH, categoryFolder, algorithmFolder);
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'Algorithm-Visualizer',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
+    // Check if directory exists
+    if (!fs.existsSync(algorithmPath)) {
+      throw new Error(`Algorithm not found: ${algorithmPath}`);
     }
 
-    const contents = await response.json();
-
-    // Fetch all files in the directory
-    const files = await Promise.all(
-      contents
-        .filter((item: any) => item.type === 'file')
-        .map(async (file: any) => {
-          try {
-            // Fetch raw file content
-            const fileResponse = await fetch(file.download_url);
-
-            if (!fileResponse.ok) {
-              console.error(`Failed to fetch ${file.name}`);
-              return null;
-            }
-
-            const content = await fileResponse.text();
-
-            return {
-              name: file.name,
-              content: content,
-              contributors: ['Algorithm Visualizer Team'],
-            };
-          } catch (error) {
-            console.error(`Error fetching file ${file.name}:`, error);
-            return null;
-          }
-        })
-    );
-
-    // Filter out null results
-    const validFiles = files.filter(Boolean);
+    // Read all files in the algorithm directory
+    const fileNames = fs.readdirSync(algorithmPath);
+    const files = fileNames
+      .filter((fileName) => {
+        const filePath = path.join(algorithmPath, fileName);
+        return fs.statSync(filePath).isFile();
+      })
+      .map((fileName) => {
+        const filePath = path.join(algorithmPath, fileName);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        return {
+          name: fileName,
+          content,
+          contributors: ['Algorithm Visualizer Team'],
+        };
+      });
 
     // Extract description from README if available
-    const readmeFile = validFiles.find(f => f?.name.toLowerCase() === 'readme.md');
+    const readmeFile = files.find(f => f.name.toLowerCase() === 'readme.md');
     let description = `${algorithmFolder} algorithm demonstration`;
 
     if (readmeFile) {
@@ -113,7 +92,7 @@ export async function GET(
         categoryName: categoryFolder,
         algorithmKey,
         algorithmName: algorithmFolder,
-        files: validFiles,
+        files,
         description,
       },
     };

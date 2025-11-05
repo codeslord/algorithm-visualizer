@@ -41,3 +41,6 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+
+# Algorithms repository (separate repo, cloned locally)
+/algorithms

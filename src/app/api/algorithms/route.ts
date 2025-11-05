@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
-// GitHub repo details
-const GITHUB_REPO = 'algorithm-visualizer/algorithms';
-const GITHUB_API = 'https://api.github.com/repos';
+// Path to local algorithms directory
+const ALGORITHMS_PATH = path.join(process.cwd(), 'algorithms');
 
-// Category mapping (GitHub folder name to display name)
+// Category mapping (folder name to key)
 const categoryMapping: Record<string, string> = {
   'Backtracking': 'backtracking',
   'Branch and Bound': 'branch-bound',
@@ -29,69 +30,36 @@ export async function GET() {
       return NextResponse.json(categoriesCache);
     }
 
-    // Fetch root directory from GitHub
-    const response = await fetch(
-      `${GITHUB_API}/${GITHUB_REPO}/contents`,
-      {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Algorithm-Visualizer',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
+    // Check if algorithms directory exists
+    if (!fs.existsSync(ALGORITHMS_PATH)) {
+      throw new Error('Algorithms directory not found. Please clone the algorithms repository.');
     }
 
-    const contents = await response.json();
+    // Read algorithm categories from local directory
+    const items = fs.readdirSync(ALGORITHMS_PATH, { withFileTypes: true });
 
-    // Filter to only include directories that are algorithm categories
-    const categoryFolders = contents.filter(
-      (item: any) => item.type === 'dir' && categoryMapping[item.name]
-    );
+    const categories = items
+      .filter((item) => item.isDirectory() && categoryMapping[item.name])
+      .map((categoryDir) => {
+        const categoryPath = path.join(ALGORITHMS_PATH, categoryDir.name);
+        const algorithmDirs = fs
+          .readdirSync(categoryPath, { withFileTypes: true })
+          .filter((item) => item.isDirectory());
 
-    // Fetch algorithms for each category
-    const categories = await Promise.all(
-      categoryFolders.map(async (folder: any) => {
-        try {
-          const algoResponse = await fetch(folder.url, {
-            headers: {
-              'Accept': 'application/vnd.github.v3+json',
-              'User-Agent': 'Algorithm-Visualizer',
-            },
-          });
+        const algorithms = algorithmDirs.map((algoDir) => ({
+          key: algoDir.name.toLowerCase().replace(/\s+/g, '-').replace(/'/g, ''),
+          name: algoDir.name,
+          description: `${algoDir.name} algorithm`,
+        }));
 
-          if (!algoResponse.ok) {
-            return null;
-          }
+        return {
+          key: categoryMapping[categoryDir.name],
+          name: categoryDir.name,
+          algorithms,
+        };
+      });
 
-          const algorithms = await algoResponse.json();
-
-          // Filter to only include directories (actual algorithms)
-          const algorithmDirs = algorithms
-            .filter((item: any) => item.type === 'dir')
-            .map((item: any) => ({
-              key: item.name.toLowerCase().replace(/\s+/g, '-').replace(/'/g, ''),
-              name: item.name,
-              description: `${item.name} algorithm`,
-            }));
-
-          return {
-            key: categoryMapping[folder.name],
-            name: folder.name,
-            algorithms: algorithmDirs,
-          };
-        } catch (error) {
-          console.error(`Error fetching algorithms for ${folder.name}:`, error);
-          return null;
-        }
-      })
-    );
-
-    // Filter out null results and cache
-    const validCategories = categories.filter(Boolean);
-    const responseData = { categories: validCategories };
+    const responseData = { categories };
     categoriesCache = responseData;
     cacheTimestamp = now;
 

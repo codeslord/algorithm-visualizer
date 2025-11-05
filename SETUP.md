@@ -52,13 +52,28 @@ This will create:
 - Triggers for automatic profile creation
 - Admin user setup for codeslord@gmail.com
 
-## 3. Install Dependencies
+## 3. Setup Algorithms Repository
+
+The algorithms are stored in a separate repository and need to be cloned locally:
+
+```bash
+./setup-algorithms.sh
+```
+
+Or manually:
+```bash
+git clone https://github.com/algorithm-visualizer/algorithms.git algorithms
+```
+
+This creates an `algorithms/` directory with all algorithm implementations that will be loaded by the visualizer.
+
+## 4. Install Dependencies
 
 ```bash
 npm install --legacy-peer-deps
 ```
 
-## 4. Admin User
+## 5. Admin User
 
 The admin user (codeslord@gmail.com) needs to be created manually:
 
@@ -67,7 +82,7 @@ The admin user (codeslord@gmail.com) needs to be created manually:
 3. The database trigger will automatically set `is_admin` and `has_paid` to TRUE
 4. This user can access the visualizer without payment
 
-## 5. Run Development Server
+## 6. Run Development Server
 
 ```bash
 npm run dev
@@ -75,14 +90,14 @@ npm run dev
 
 Visit http://localhost:3000
 
-## 6. Testing Payment Flow
+## 7. Testing Payment Flow
 
 For testing Stripe payments, use test card numbers:
 - Success: `4242 4242 4242 4242`
 - Decline: `4000 0000 0000 0002`
 - Any future expiry date and any CVC
 
-## 7. Deployment
+## 8. Deployment
 
 ### Vercel Deployment (Recommended)
 
