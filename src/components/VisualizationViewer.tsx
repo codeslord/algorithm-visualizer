@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, Play } from 'lucide-react';
 import { usePlayerStore, useCurrentStore } from '@/store';
@@ -27,7 +27,6 @@ const TracerClasses: Record<string, any> = {
 export const VisualizationViewer: React.FC = () => {
   const { chunks, cursor } = usePlayerStore();
   const { description } = useCurrentStore();
-  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Build tracer instances from commands up to current cursor
   const { root, tracers } = useMemo(() => {
@@ -106,11 +105,6 @@ export const VisualizationViewer: React.FC = () => {
     return { root, tracers };
   }, [chunks, cursor]);
 
-  // Force re-render when cursor changes to update tracer visualizations
-  useEffect(() => {
-    setForceUpdate(prev => prev + 1);
-  }, [cursor]);
-
   const hasVisualization = chunks.length > 0 && Object.keys(tracers).length > 0;
 
   if (!hasVisualization) {
@@ -153,7 +147,7 @@ export const VisualizationViewer: React.FC = () => {
   }
 
   return (
-    <div className="visualization-container space-y-4" key={forceUpdate}>
+    <div className="visualization-container space-y-4">
       {/* Description */}
       {description && (
         <motion.div

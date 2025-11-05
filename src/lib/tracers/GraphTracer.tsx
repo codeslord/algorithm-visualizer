@@ -179,6 +179,102 @@ export class GraphTracer extends Tracer {
     }
   }
 
+  findLinkedEdges(source: number, isDirected: boolean = this.isDirected): GraphEdge[] {
+    if (isDirected) {
+      return this.edges.filter(edge => edge.source === source);
+    } else {
+      return this.edges.filter(edge => edge.source === source || edge.target === source);
+    }
+  }
+
+  findLinkedNodeIds(source: number, isDirected: boolean = this.isDirected): number[] {
+    const edges = this.findLinkedEdges(source, isDirected);
+    return edges.map(edge => edge.source === source ? edge.target : edge.source);
+  }
+
+  findLinkedNodes(source: number, isDirected: boolean = this.isDirected): GraphNode[] {
+    const ids = this.findLinkedNodeIds(source, isDirected);
+    return ids.map(id => this.findNode(id)).filter(node => node !== undefined) as GraphNode[];
+  }
+
+  layoutTree(root: number = 0, sorted: boolean = false) {
+    this.callLayout = { method: this.layoutTree, args: [root, sorted] };
+    const rect = this.getRect();
+
+    if (this.nodes.length === 1) {
+      const node = this.nodes[0];
+      node.x = (rect.left + rect.right) / 2;
+      node.y = (rect.top + rect.bottom) / 2;
+      return;
+    }
+
+    let maxDepth = 0;
+    const leafCounts: Record<number, number> = {};
+    let marked: Record<number, boolean> = {};
+
+    const recursiveAnalyze = (id: number, depth: number): number => {
+      marked[id] = true;
+      leafCounts[id] = 0;
+      if (maxDepth < depth) maxDepth = depth;
+      const linkedNodeIds = this.findLinkedNodeIds(id, false);
+      for (const linkedNodeId of linkedNodeIds) {
+        if (marked[linkedNodeId]) continue;
+        leafCounts[id] += recursiveAnalyze(linkedNodeId, depth + 1);
+      }
+      if (leafCounts[id] === 0) leafCounts[id] = 1;
+      return leafCounts[id];
+    };
+
+    recursiveAnalyze(root, 0);
+
+    const hGap = rect.width / leafCounts[root];
+    const vGap = maxDepth > 0 ? rect.height / maxDepth : 0;
+    marked = {};
+
+    const recursivePosition = (node: GraphNode, h: number, v: number) => {
+      marked[node.id] = true;
+      node.x = rect.left + (h + leafCounts[node.id] / 2) * hGap;
+      node.y = rect.top + v * vGap;
+      const linkedNodes = this.findLinkedNodes(node.id, false);
+      if (sorted) linkedNodes.sort((a, b) => a.id - b.id);
+      for (const linkedNode of linkedNodes) {
+        if (marked[linkedNode.id]) continue;
+        recursivePosition(linkedNode, h, v + 1);
+        h += leafCounts[linkedNode.id];
+      }
+    };
+
+    const rootNode = this.findNode(root);
+    if (rootNode) {
+      recursivePosition(rootNode, 0, 0);
+    }
+  }
+
+  layoutRandom() {
+    this.callLayout = { method: this.layoutRandom, args: [] };
+    const rect = this.getRect();
+    const placedNodes: GraphNode[] = [];
+
+    const distance = (a: GraphNode, b: GraphNode) => {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    for (const node of this.nodes) {
+      let attempts = 0;
+      do {
+        node.x = rect.left + Math.random() * rect.width;
+        node.y = rect.top + Math.random() * rect.height;
+        attempts++;
+      } while (
+        attempts < 100 &&
+        placedNodes.find(placedNode => distance(node, placedNode) < 48)
+      );
+      placedNodes.push(node);
+    }
+  }
+
   visit(target: number, source?: number, weight?: number) {
     this.visitOrLeave(true, target, source, weight);
   }

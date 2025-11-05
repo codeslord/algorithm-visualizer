@@ -247,6 +247,21 @@ class GraphTracer extends Tracer {
     this._command('weighted', isWeighted);
     return this;
   }
+
+  layoutTree(root = 0, sorted = false) {
+    this._command('layoutTree', root, sorted);
+    return this;
+  }
+
+  layoutCircle() {
+    this._command('layoutCircle');
+    return this;
+  }
+
+  layoutRandom() {
+    this._command('layoutRandom');
+    return this;
+  }
 }
 
 // MarkdownTracer - for displaying markdown
@@ -318,6 +333,11 @@ class HorizontalLayout extends Layout {
 
 // Randomize utility
 class Randomize {
+  static Integer(options) {
+    const { min = 0, max = 100 } = options || {};
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
   static Array1D(options) {
     const { N = 10, min = 0, max = 100 } = options || {};
     const array = [];
@@ -342,21 +362,30 @@ class Randomize {
 
   static Graph(options) {
     const { N = 5, ratio = 0.3, directed = false, weighted = false } = options || {};
-    const nodes = [];
+    // Create adjacency matrix
+    const graph = [];
     for (let i = 0; i < N; i++) {
-      nodes.push(i);
+      const row = [];
+      for (let j = 0; j < N; j++) {
+        row.push(0);
+      }
+      graph.push(row);
     }
-    const edges = [];
+
+    // Add edges based on ratio
     for (let i = 0; i < N; i++) {
       for (let j = directed ? 0 : i + 1; j < N; j++) {
         if (i !== j && Math.random() < ratio) {
-          const edge = [i, j];
-          if (weighted) edge.push(Math.floor(Math.random() * 100) + 1);
-          edges.push(edge);
+          const weight = weighted ? Math.floor(Math.random() * 100) + 1 : 1;
+          graph[i][j] = weight;
+          if (!directed) {
+            graph[j][i] = weight; // Undirected graph
+          }
         }
       }
     }
-    return [nodes, edges];
+
+    return graph;
   }
 }
 
