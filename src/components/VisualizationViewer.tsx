@@ -1,169 +1,117 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Play, Layout as LayoutIcon } from 'lucide-react';
+import { BarChart3, Play } from 'lucide-react';
 import { usePlayerStore, useCurrentStore } from '@/store';
 import {
-  Array1DRenderer,
-  Array2DRenderer,
-  LogRenderer,
-  ChartRenderer,
-  GraphRenderer,
-} from './renderers';
+  Tracer,
+  Array1DTracer,
+  Array2DTracer,
+  LogTracer,
+  ChartTracer,
+  GraphTracer,
+  VerticalLayout,
+  HorizontalLayout,
+} from '@/lib/tracers';
 
-interface TracerState {
-  type: string;
-  key: string;
-  data?: any;
-  selected?: any;
-  patched?: any;
-  logs?: string[];
-  nodes?: any[];
-  edges?: any[];
-  directed?: boolean;
-  weighted?: boolean;
-}
+// Tracer class map for construction from commands
+const TracerClasses: Record<string, any> = {
+  Array1DTracer,
+  Array2DTracer,
+  LogTracer,
+  ChartTracer,
+  GraphTracer,
+};
 
 export const VisualizationViewer: React.FC = () => {
   const { chunks, cursor } = usePlayerStore();
   const { description } = useCurrentStore();
+  const [forceUpdate, setForceUpdate] = useState(0);
 
-  // Build tracer states from commands up to current cursor
-  const tracerStates = useMemo(() => {
-    const states = new Map<string, TracerState>();
+  // Build tracer instances from commands up to current cursor
+  const { root, tracers } = useMemo(() => {
+    const tracers: Record<string, Tracer> = {};
+    let root: any = null;
+
+    // Helper function to get tracer by key
+    const getObject = (key: string) => tracers[key];
 
     // Process all chunks up to and including the current cursor
-    for (let i = 0; i <= cursor && i < chunks.length; i++) {
-      const chunk = chunks[i];
+    for (let chunkIndex = 0; chunkIndex <= cursor && chunkIndex < chunks.length; chunkIndex++) {
+      const chunk = chunks[chunkIndex];
       if (!chunk || !chunk.commands) continue;
 
       chunk.commands.forEach((command: any) => {
         const { key, method, args } = command;
 
-        if (!key) return; // Skip root commands
+        // Handle setRoot command
+        if (method === 'setRoot') {
+          const layoutKey = args[0];
+          const tracerKeys = args.slice(1); // Assuming tracers are passed as additional args
 
-        // Get or create tracer state
-        if (!states.has(key)) {
-          states.set(key, {
-            type: method.includes('Array1D')
-              ? 'array1d'
-              : method.includes('Array2D')
-              ? 'array2d'
-              : method.includes('Chart')
-              ? 'chart'
-              : method.includes('Graph')
-              ? 'graph'
-              : method.includes('Log')
-              ? 'log'
-              : 'unknown',
-            key,
-            logs: [],
-          });
+          // Try to get tracers for the layout
+          const layoutTracers = tracerKeys
+            .map((k: string) => tracers[k])
+            .filter((t: Tracer | undefined) => t !== undefined);
+
+          if (layoutKey === 'vertical_layout') {
+            root = new VerticalLayout(layoutTracers.length > 0 ? layoutTracers : Object.values(tracers));
+          } else if (layoutKey === 'horizontal_layout') {
+            root = new HorizontalLayout(layoutTracers.length > 0 ? layoutTracers : Object.values(tracers));
+          } else {
+            // Default to showing all tracers vertically
+            root = new VerticalLayout(Object.values(tracers));
+          }
+          return;
         }
 
-        const state = states.get(key)!;
+        if (!key) return; // Skip commands without a key
 
-        // Process command based on method
-        switch (method) {
-          case 'set':
-            state.data = args[0];
-            state.selected = [];
-            state.patched = new Map();
-            break;
+        // Check if this is a construct command
+        if (method === 'construct' && args && args[0]) {
+          const title = args[0];
+          // Determine tracer type from the key or method name
+          let TracerClass = null;
 
-          case 'select':
-            if (state.type === 'array1d' || state.type === 'chart') {
-              state.selected = args;
-            } else if (state.type === 'array2d') {
-              state.selected = state.selected || [];
-              state.selected.push([args[0], args[1]]);
+          for (const [className, Class] of Object.entries(TracerClasses)) {
+            if (key.toLowerCase().includes(className.toLowerCase().replace('tracer', ''))) {
+              TracerClass = Class;
+              break;
             }
-            break;
+          }
 
-          case 'deselect':
-            if (state.type === 'array1d' || state.type === 'chart') {
-              state.selected = state.selected?.filter((i: number) => !args.includes(i)) || [];
-            } else if (state.type === 'array2d') {
-              state.selected =
-                state.selected?.filter(
-                  ([r, c]: [number, number]) => r !== args[0] || c !== args[1]
-                ) || [];
-            }
-            break;
+          if (TracerClass) {
+            tracers[key] = new TracerClass(key, getObject, title);
+          }
+          return;
+        }
 
-          case 'patch':
-            if (!state.patched) state.patched = new Map();
-            if (state.type === 'array1d' || state.type === 'chart') {
-              state.patched.set(args[0], args[1]);
-            } else if (state.type === 'array2d') {
-              state.patched.set(`${args[0]},${args[1]}`, args[2]);
-            }
-            break;
-
-          case 'depatch':
-            if (state.patched) {
-              if (state.type === 'array1d' || state.type === 'chart') {
-                state.patched.delete(args[0]);
-              } else if (state.type === 'array2d') {
-                state.patched.delete(`${args[0]},${args[1]}`);
-              }
-            }
-            break;
-
-          case 'print':
-          case 'println':
-            if (!state.logs) state.logs = [];
-            state.logs.push(args[0]);
-            break;
-
-          case 'chart':
-            // Link array to chart
-            break;
-
-          case 'addNode':
-            if (!state.nodes) state.nodes = [];
-            state.nodes.push({
-              id: String(args[0]),
-              weight: args[1],
-              visited: false,
-              selected: false,
-            });
-            break;
-
-          case 'addEdge':
-            if (!state.edges) state.edges = [];
-            state.edges.push({
-              source: String(args[0]),
-              target: String(args[1]),
-              weight: args[2],
-              visited: false,
-              selected: false,
-            });
-            break;
-
-          case 'directed':
-            state.directed = args[0];
-            break;
-
-          case 'weighted':
-            state.weighted = args[0];
-            break;
-
-          case 'visit':
-            if (state.type === 'graph' && state.nodes) {
-              const node = state.nodes.find((n) => n.id === String(args[0]));
-              if (node) node.visited = true;
-            }
-            break;
+        // Apply method to existing tracer instance
+        if (tracers[key] && typeof tracers[key][method] === 'function') {
+          try {
+            tracers[key][method](...(args || []));
+          } catch (error) {
+            console.error(`Error applying ${method} to ${key}:`, error);
+          }
         }
       });
     }
 
-    return Array.from(states.values());
+    // If no root was set, create a default vertical layout with all tracers
+    if (!root && Object.keys(tracers).length > 0) {
+      root = new VerticalLayout(Object.values(tracers));
+    }
+
+    return { root, tracers };
   }, [chunks, cursor]);
 
-  const hasVisualization = chunks.length > 0;
+  // Force re-render when cursor changes to update tracer visualizations
+  useEffect(() => {
+    setForceUpdate(prev => prev + 1);
+  }, [cursor]);
+
+  const hasVisualization = chunks.length > 0 && Object.keys(tracers).length > 0;
 
   if (!hasVisualization) {
     return (
@@ -205,7 +153,7 @@ export const VisualizationViewer: React.FC = () => {
   }
 
   return (
-    <div className="visualization-container space-y-4">
+    <div className="visualization-container space-y-4" key={forceUpdate}>
       {/* Description */}
       {description && (
         <motion.div
@@ -229,47 +177,16 @@ export const VisualizationViewer: React.FC = () => {
         className="glass-panel p-6 min-h-[400px]"
       >
         <div className="space-y-6">
-          {tracerStates.map((state) => (
-            <div key={state.key} className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <LayoutIcon className="w-4 h-4" />
-                <span className="font-mono">{state.key}</span>
+          {root ? (
+            root.render()
+          ) : (
+            // Fallback: render all tracers individually
+            Object.values(tracers).map((tracer) => (
+              <div key={tracer.key}>
+                {tracer.render()}
               </div>
-
-              {state.type === 'array1d' && state.data && (
-                <Array1DRenderer
-                  data={state.data}
-                  selected={state.selected}
-                  patched={state.patched}
-                />
-              )}
-
-              {state.type === 'array2d' && state.data && (
-                <Array2DRenderer
-                  data={state.data}
-                  selected={state.selected}
-                  patched={state.patched}
-                />
-              )}
-
-              {state.type === 'chart' && state.data && (
-                <ChartRenderer data={state.data} selected={state.selected} />
-              )}
-
-              {state.type === 'graph' && state.nodes && (
-                <GraphRenderer
-                  nodes={state.nodes}
-                  edges={state.edges || []}
-                  directed={state.directed}
-                  weighted={state.weighted}
-                />
-              )}
-
-              {state.type === 'log' && state.logs && state.logs.length > 0 && (
-                <LogRenderer logs={state.logs} />
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </motion.div>
 
@@ -281,7 +198,7 @@ export const VisualizationViewer: React.FC = () => {
         </div>
         <div className="glass-panel p-4 text-center">
           <p className="text-gray-400 text-sm mb-1">Current Step</p>
-          <p className="text-2xl font-bold text-accent">{cursor}</p>
+          <p className="text-2xl font-bold text-accent">{cursor + 1}</p>
         </div>
         <div className="glass-panel p-4 text-center">
           <p className="text-gray-400 text-sm mb-1">Current Line</p>

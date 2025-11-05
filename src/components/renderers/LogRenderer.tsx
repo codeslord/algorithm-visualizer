@@ -4,32 +4,29 @@ import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LogTracer } from '@/lib/tracers';
 
 interface LogRendererProps {
-  logs: string[];
-  className?: string;
+  title: string;
+  data: LogTracer;
 }
 
-export const LogRenderer: React.FC<LogRendererProps> = ({ logs, className }) => {
+export const LogRenderer: React.FC<LogRendererProps> = ({ title, data: tracer }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const logs = tracer.log.split('\n').filter(line => line.trim());
 
   // Auto-scroll to bottom when new logs are added
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [logs.length]);
 
   return (
-    <div
-      className={cn(
-        'glass-panel p-4 rounded-lg h-full max-h-64 overflow-y-auto glass-scrollbar',
-        className
-      )}
-    >
+    <div className="glass-panel p-4 rounded-lg h-full max-h-64 overflow-y-auto glass-scrollbar">
       <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
         <Terminal className="w-4 h-4 text-accent" />
-        <span className="text-sm font-semibold text-gray-300">Console Output</span>
+        <span className="text-sm font-semibold text-gray-300">{title}</span>
       </div>
 
       <div ref={containerRef} className="space-y-1">

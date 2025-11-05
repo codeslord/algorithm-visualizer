@@ -1,0 +1,246 @@
+import { Tracer } from './Tracer';
+import { GraphRenderer } from '@/components/renderers/GraphRenderer';
+
+export interface GraphNode {
+  id: number;
+  weight: number | null;
+  x: number;
+  y: number;
+  visitedCount: number;
+  selectedCount: number;
+}
+
+export interface GraphEdge {
+  source: number;
+  target: number;
+  weight: number | null;
+  visitedCount: number;
+  selectedCount: number;
+}
+
+export interface GraphDimensions {
+  baseWidth: number;
+  baseHeight: number;
+  padding: number;
+  nodeRadius: number;
+  arrowGap: number;
+  nodeWeightGap: number;
+  edgeWeightGap: number;
+}
+
+export class GraphTracer extends Tracer {
+  nodes: GraphNode[] = [];
+  edges: GraphEdge[] = [];
+  dimensions: GraphDimensions;
+  isDirected: boolean = true;
+  isWeighted: boolean = false;
+  callLayout: { method: Function; args: any[] };
+  logTracer: any = null;
+
+  getRendererClass() {
+    return GraphRenderer;
+  }
+
+  init() {
+    super.init();
+    this.dimensions = {
+      baseWidth: 320,
+      baseHeight: 320,
+      padding: 32,
+      nodeRadius: 12,
+      arrowGap: 4,
+      nodeWeightGap: 4,
+      edgeWeightGap: 4,
+    };
+    this.isDirected = true;
+    this.isWeighted = false;
+    this.callLayout = { method: this.layoutCircle, args: [] };
+    this.logTracer = null;
+  }
+
+  set(array2d: number[][] = []) {
+    this.nodes = [];
+    this.edges = [];
+
+    for (let i = 0; i < array2d.length; i++) {
+      this.addNode(i);
+      for (let j = 0; j < array2d.length; j++) {
+        const value = array2d[i][j];
+        if (value) {
+          this.addEdge(i, j, this.isWeighted ? value : null);
+        }
+      }
+    }
+    this.layout();
+    super.set();
+  }
+
+  directed(isDirected: boolean = true) {
+    this.isDirected = isDirected;
+  }
+
+  weighted(isWeighted: boolean = true) {
+    this.isWeighted = isWeighted;
+  }
+
+  addNode(id: number, weight: number | null = null, x: number = 0, y: number = 0, visitedCount: number = 0, selectedCount: number = 0) {
+    if (this.findNode(id)) return;
+    this.nodes.push({ id, weight, x, y, visitedCount, selectedCount });
+    this.layout();
+  }
+
+  updateNode(id: number, weight?: number | null, x?: number, y?: number, visitedCount?: number, selectedCount?: number) {
+    const node = this.findNode(id);
+    if (!node) return;
+
+    if (weight !== undefined) node.weight = weight;
+    if (x !== undefined) node.x = x;
+    if (y !== undefined) node.y = y;
+    if (visitedCount !== undefined) node.visitedCount = visitedCount;
+    if (selectedCount !== undefined) node.selectedCount = selectedCount;
+  }
+
+  removeNode(id: number) {
+    const node = this.findNode(id);
+    if (!node) return;
+
+    const index = this.nodes.indexOf(node);
+    this.nodes.splice(index, 1);
+    this.layout();
+  }
+
+  addEdge(source: number, target: number, weight: number | null = null, visitedCount: number = 0, selectedCount: number = 0) {
+    if (this.findEdge(source, target)) return;
+    this.edges.push({ source, target, weight, visitedCount, selectedCount });
+    this.layout();
+  }
+
+  updateEdge(source: number, target: number, weight?: number | null, visitedCount?: number, selectedCount?: number) {
+    const edge = this.findEdge(source, target);
+    if (!edge) return;
+
+    if (weight !== undefined) edge.weight = weight;
+    if (visitedCount !== undefined) edge.visitedCount = visitedCount;
+    if (selectedCount !== undefined) edge.selectedCount = selectedCount;
+  }
+
+  removeEdge(source: number, target: number) {
+    const edge = this.findEdge(source, target);
+    if (!edge) return;
+
+    const index = this.edges.indexOf(edge);
+    this.edges.splice(index, 1);
+    this.layout();
+  }
+
+  findNode(id: number): GraphNode | undefined {
+    return this.nodes.find(node => node.id === id);
+  }
+
+  findEdge(source: number, target: number, isDirected: boolean = this.isDirected): GraphEdge | undefined {
+    if (isDirected) {
+      return this.edges.find(edge => edge.source === source && edge.target === target);
+    } else {
+      return this.edges.find(edge =>
+        (edge.source === source && edge.target === target) ||
+        (edge.source === target && edge.target === source)
+      );
+    }
+  }
+
+  getRect() {
+    const { baseWidth, baseHeight, padding } = this.dimensions;
+    const left = -baseWidth / 2 + padding;
+    const top = -baseHeight / 2 + padding;
+    const right = baseWidth / 2 - padding;
+    const bottom = baseHeight / 2 - padding;
+    const width = right - left;
+    const height = bottom - top;
+    return { left, top, right, bottom, width, height };
+  }
+
+  layout() {
+    const { method, args } = this.callLayout;
+    method.apply(this, args);
+  }
+
+  layoutCircle() {
+    this.callLayout = { method: this.layoutCircle, args: [] };
+    const rect = this.getRect();
+    const unitAngle = (2 * Math.PI) / this.nodes.length;
+    let angle = -Math.PI / 2;
+
+    for (const node of this.nodes) {
+      const x = Math.cos(angle) * rect.width / 2;
+      const y = Math.sin(angle) * rect.height / 2;
+      node.x = x;
+      node.y = y;
+      angle += unitAngle;
+    }
+  }
+
+  visit(target: number, source?: number, weight?: number) {
+    this.visitOrLeave(true, target, source, weight);
+  }
+
+  leave(target: number, source?: number, weight?: number) {
+    this.visitOrLeave(false, target, source, weight);
+  }
+
+  visitOrLeave(visit: boolean, target: number, source?: number, weight?: number) {
+    if (source !== undefined) {
+      const edge = this.findEdge(source, target);
+      if (edge) {
+        edge.visitedCount += visit ? 1 : -1;
+      }
+    }
+
+    const node = this.findNode(target);
+    if (node) {
+      if (weight !== undefined) node.weight = weight;
+      node.visitedCount += visit ? 1 : -1;
+
+      if (this.logTracer) {
+        this.logTracer.println(
+          visit
+            ? `${source !== undefined ? source : ''} -> ${target}`
+            : `${source !== undefined ? source : ''} <- ${target}`
+        );
+      }
+    }
+  }
+
+  select(target: number, source?: number) {
+    this.selectOrDeselect(true, target, source);
+  }
+
+  deselect(target: number, source?: number) {
+    this.selectOrDeselect(false, target, source);
+  }
+
+  selectOrDeselect(select: boolean, target: number, source?: number) {
+    if (source !== undefined) {
+      const edge = this.findEdge(source, target);
+      if (edge) {
+        edge.selectedCount += select ? 1 : -1;
+      }
+    }
+
+    const node = this.findNode(target);
+    if (node) {
+      node.selectedCount += select ? 1 : -1;
+
+      if (this.logTracer) {
+        this.logTracer.println(
+          select
+            ? `${source !== undefined ? source : ''} => ${target}`
+            : `${source !== undefined ? source : ''} <= ${target}`
+        );
+      }
+    }
+  }
+
+  log(key: string) {
+    this.logTracer = key ? this.getObject(key) : null;
+  }
+}
