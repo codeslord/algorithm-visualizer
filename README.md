@@ -7,7 +7,18 @@ Welcome to Algorithm Visualizer, an interactive online platform designed to brin
 [![GitHub license](https://img.shields.io/github/license/algorithm-visualizer/algorithm-visualizer.svg?style=flat-square)](https://github.com/algorithm-visualizer/algorithm-visualizer/blob/master/LICENSE)
 
 ## Languages and Frameworks Used
-[![Languages](https://skillicons.dev/icons?i=html,css,js,react,nodejs,redux)](https://skillicons.dev)
+[![Languages](https://skillicons.dev/icons?i=nextjs,react,typescript,tailwind,nodejs)](https://skillicons.dev)
+
+### Tech Stack (v3.0 - Glassmorphic Redesign)
+- **Next.js 14** - React framework with App Router
+- **React 18** - UI library
+- **TypeScript** - Type-safe JavaScript
+- **Tailwind CSS** - Utility-first CSS framework
+- **Zustand** - Lightweight state management
+- **Framer Motion** - Animation library
+- **React Ace** - Code editor component
+- **Chart.js** - Data visualization
+- **Glassmorphic Design** - Beautiful frosted glass UI
 
 
 ## Key Features
