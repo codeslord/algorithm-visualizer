@@ -336,7 +336,11 @@ export class GraphTracer extends Tracer {
     }
   }
 
-  log(key: string) {
-    this.logTracer = key ? this.getObject(key) : null;
+  log(keyOrTracer: string | any) {
+    if (typeof keyOrTracer === 'string') {
+      this.logTracer = keyOrTracer ? this.getObject(keyOrTracer) : null;
+    } else {
+      this.logTracer = keyOrTracer;
+    }
   }
 }

@@ -105,13 +105,33 @@ class Array2DTracer extends Tracer {
     return this;
   }
 
-  select(row, col) {
-    this._command('select', row, col);
+  select(row, col, endRow = row, endCol = col) {
+    this._command('select', row, col, endRow, endCol);
     return this;
   }
 
-  deselect(row, col) {
-    this._command('deselect', row, col);
+  deselect(row, col, endRow = row, endCol = col) {
+    this._command('deselect', row, col, endRow, endCol);
+    return this;
+  }
+
+  selectRow(x, sy, ey) {
+    this._command('selectRow', x, sy, ey);
+    return this;
+  }
+
+  selectCol(y, sx, ex) {
+    this._command('selectCol', y, sx, ex);
+    return this;
+  }
+
+  deselectRow(x, sy, ey) {
+    this._command('deselectRow', x, sy, ey);
+    return this;
+  }
+
+  deselectCol(y, sx, ex) {
+    this._command('deselectCol', y, sx, ex);
     return this;
   }
 }
@@ -233,7 +253,8 @@ class GraphTracer extends Tracer {
     return this;
   }
 
-  log(key) {
+  log(keyOrTracer) {
+    const key = typeof keyOrTracer === 'string' ? keyOrTracer : (keyOrTracer && keyOrTracer.key);
     this._command('log', key);
     return this;
   }
@@ -339,21 +360,32 @@ class Randomize {
   }
 
   static Array1D(options) {
-    const { N = 10, min = 0, max = 100 } = options || {};
+    const { N = 10, min = 0, max = 100, value, sorted = false } = options || {};
     const array = [];
     for (let i = 0; i < N; i++) {
-      array.push(Math.floor(Math.random() * (max - min + 1)) + min);
+      if (typeof value === 'function') {
+        array.push(value());
+      } else {
+        array.push(Math.floor(Math.random() * (max - min + 1)) + min);
+      }
+    }
+    if (sorted) {
+      array.sort((a, b) => a - b);
     }
     return array;
   }
 
   static Array2D(options) {
-    const { N = 5, M = 5, min = 0, max = 100 } = options || {};
+    const { N = 5, M = 5, min = 0, max = 100, value } = options || {};
     const array = [];
     for (let i = 0; i < N; i++) {
       const row = [];
       for (let j = 0; j < M; j++) {
-        row.push(Math.floor(Math.random() * (max - min + 1)) + min);
+        if (typeof value === 'function') {
+          row.push(value());
+        } else {
+          row.push(Math.floor(Math.random() * (max - min + 1)) + min);
+        }
       }
       array.push(row);
     }
