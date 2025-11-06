@@ -27,6 +27,7 @@ class Tracer {
       }),
       lineNumber,
       chunkIndex,
+      className: this.className, // Add className to identify tracer type
     });
   }
 

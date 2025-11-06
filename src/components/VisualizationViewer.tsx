@@ -42,12 +42,12 @@ export const VisualizationViewer: React.FC = () => {
       if (!chunk || !chunk.commands) continue;
 
       chunk.commands.forEach((command: any) => {
-        const { key, method, args } = command;
+        const { key, method, args, className } = command;
 
         // Handle setRoot command
         if (method === 'setRoot') {
           const layoutKey = args[0];
-          const tracerKeys = args.slice(1); // Assuming tracers are passed as additional args
+          const tracerKeys = args.slice(1);
 
           // Try to get tracers for the layout
           const layoutTracers = tracerKeys
@@ -70,18 +70,14 @@ export const VisualizationViewer: React.FC = () => {
         // Check if this is a construct command
         if (method === 'construct' && args && args[0]) {
           const title = args[0];
-          // Determine tracer type from the key or method name
-          let TracerClass = null;
 
-          for (const [className, Class] of Object.entries(TracerClasses)) {
-            if (key.toLowerCase().includes(className.toLowerCase().replace('tracer', ''))) {
-              TracerClass = Class;
-              break;
-            }
-          }
+          // Use className from command to determine tracer type
+          const TracerClass = className ? TracerClasses[className] : null;
 
           if (TracerClass) {
             tracers[key] = new TracerClass(key, getObject, title);
+          } else {
+            console.warn(`Unknown tracer class: ${className} for key: ${key}`);
           }
           return;
         }
