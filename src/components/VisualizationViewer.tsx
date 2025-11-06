@@ -33,6 +33,8 @@ export const VisualizationViewer: React.FC = () => {
     const tracers: Record<string, Tracer> = {};
     let root: any = null;
 
+    console.log('[VisualizationViewer] Processing chunks:', chunks.length, 'cursor:', cursor);
+
     // Helper function to get tracer by key
     const getObject = (key: string) => tracers[key];
 
@@ -41,8 +43,12 @@ export const VisualizationViewer: React.FC = () => {
       const chunk = chunks[chunkIndex];
       if (!chunk || !chunk.commands) continue;
 
+      console.log('[VisualizationViewer] Processing chunk', chunkIndex, 'with', chunk.commands?.length, 'commands');
+
       chunk.commands.forEach((command: any) => {
         const { key, method, args, className } = command;
+
+        console.log('[VisualizationViewer] Command:', { key, method, className, args });
 
         // Handle setRoot command
         if (method === 'setRoot') {
@@ -62,6 +68,7 @@ export const VisualizationViewer: React.FC = () => {
             // Default to showing all tracers vertically
             root = new VerticalLayout(Object.values(tracers));
           }
+          console.log('[VisualizationViewer] Set root layout:', layoutKey);
           return;
         }
 
@@ -76,6 +83,7 @@ export const VisualizationViewer: React.FC = () => {
 
           if (TracerClass) {
             tracers[key] = new TracerClass(key, getObject, title);
+            console.log('[VisualizationViewer] Created tracer:', key, className);
           } else {
             console.warn(`Unknown tracer class: ${className} for key: ${key}`);
           }
@@ -86,9 +94,14 @@ export const VisualizationViewer: React.FC = () => {
         if (tracers[key] && typeof tracers[key][method] === 'function') {
           try {
             tracers[key][method](...(args || []));
+            console.log('[VisualizationViewer] Applied method:', key, method);
           } catch (error) {
             console.error(`Error applying ${method} to ${key}:`, error);
           }
+        } else if (tracers[key]) {
+          console.warn(`Method ${method} not found on tracer ${key}`);
+        } else {
+          console.warn(`Tracer ${key} not found for method ${method}`);
         }
       });
     }
@@ -96,7 +109,11 @@ export const VisualizationViewer: React.FC = () => {
     // If no root was set, create a default vertical layout with all tracers
     if (!root && Object.keys(tracers).length > 0) {
       root = new VerticalLayout(Object.values(tracers));
+      console.log('[VisualizationViewer] Created default vertical layout with', Object.keys(tracers).length, 'tracers');
     }
+
+    console.log('[VisualizationViewer] Final tracers:', Object.keys(tracers));
+    console.log('[VisualizationViewer] Root:', root);
 
     return { root, tracers };
   }, [chunks, cursor]);

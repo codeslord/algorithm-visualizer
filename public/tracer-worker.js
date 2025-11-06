@@ -66,6 +66,7 @@ self.onmessage = function(e) {
         key: command.key,
         method: command.method,
         args: command.args,
+        className: command.className, // Include className for tracer type identification
       });
     });
 
